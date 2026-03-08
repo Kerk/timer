@@ -21,7 +21,7 @@ https://kerk.github.io/timer/
 
 ## 🚀 Schnellstart
 
-1. `speeddating-timer.html` herunterladen
+1. `index.html` herunterladen
 2. In einem modernen Browser öffnen (Chrome, Firefox, Edge, Safari)
 3. Fragen eingeben, Zeiten einstellen, auf **Starten** klicken
 
