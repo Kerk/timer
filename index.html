@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Let's connect</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --accent: #f0c060;
+    --accent2: #e06030;
+    --text: #f0ede8;
+    --muted: #6b6870;
+    --danger: #e84040;
+    --partner: #60c0b0;
+    --radius: 1.5rem;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 80%, rgba(240,192,96,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, rgba(224,96,48,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===================== SETUP ===================== */
+  #setup-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    z-index: 100;
+    padding: 2rem;
+    overflow-y: auto;
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  #setup-screen.hidden {
+    opacity: 0;
+    transform: scale(0.97);
+    pointer-events: none;
+  }
+
+  .setup-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    color: var(--accent);
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .setup-subtitle {
+    color: var(--muted);
+    font-size: 1.05rem;
+    font-weight: 300;
+    text-align: center;
+    margin-top: -0.5rem;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid rgba(240,192,96,0.15);
+    border-radius: var(--radius);
+    padding: 2rem 2.5rem;
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .time-row { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+
+  .time-block { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .time-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .time-block.partner .time-input-wrap { border-color: rgba(96,192,176,0.25); }
+
+  .time-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 1.4rem;
+    cursor: pointer;
+    width: 1.8rem;
+    height: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4rem;
+    transition: background 0.15s;
+  }
+
+  .time-btn:hover { background: rgba(240,192,96,0.15); }
+  .time-block.partner .time-btn { color: var(--partner); }
+  .time-block.partner .time-btn:hover { background: rgba(96,192,176,0.12); }
+
+  .minutes-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 2.5rem;
+    text-align: center;
+  }
+
+  .questions-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .question-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .question-row.dragging { opacity: 0.4; transform: scale(0.98); }
+
+  .question-row.drag-over {
+    border-radius: 0.75rem;
+    outline: 2px dashed rgba(240,192,96,0.5);
+    outline-offset: 2px;
+  }
+
+  .drag-handle {
+    color: var(--muted);
+    cursor: grab;
+    font-size: 1.1rem;
+    padding: 0 0.2rem;
+    flex-shrink: 0;
+    user-select: none;
+    transition: color 0.15s;
+  }
+
+  .drag-handle:hover { color: var(--accent); }
+  .drag-handle:active { cursor: grabbing; }
+
+  input[type="text"] {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    padding: 0.65rem 1rem;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+  .icon-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--muted);
+    border-radius: 0.5rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .icon-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .add-btn {
+    background: none;
+    border: 1px dashed rgba(240,192,96,0.3);
+    color: var(--accent);
+    border-radius: 0.75rem;
+    padding: 0.55rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+  }
+
+  .add-btn:hover { background: rgba(240,192,96,0.08); border-color: var(--accent); }
+
+  .start-btn {
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.9rem 3rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 40px rgba(240,192,96,0.25);
+  }
+
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(240,192,96,0.35); }
+
+  /* ===================== TIMER SCREEN ===================== */
+  #timer-screen {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    gap: 2rem;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+
+  #timer-screen.visible { opacity: 1; pointer-events: all; }
+
+  .round-info { display: flex; align-items: center; gap: 1.5rem; }
+
+  .round-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
+  }
+
+  .round-dots { display: flex; gap: 0.5rem; }
+
+  .round-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    transition: background 0.3s;
+  }
+
+  .round-dot.active { background: var(--accent); }
+  .round-dot.done   { background: rgba(240,192,96,0.35); }
+
+  .question-display {
+    text-align: center;
+    max-width: 900px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .question-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 0.75rem;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  .clock-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(200px, 38vmin, 420px);
+    height: clamp(200px, 38vmin, 420px);
+    animation: fadeUp 0.6s 0.15s ease both;
+  }
+
+  .clock-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .clock-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
+
+  .clock-progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+  }
+
+  .clock-progress.warning { stroke: var(--accent2); }
+  .clock-progress.danger  { stroke: var(--danger); }
+
+  .clock-time {
+    position: absolute;
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(2.2rem, 9vmin, 6rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    transition: color 0.5s;
+  }
+
+  .clock-time.warning { color: var(--accent2); }
+  .clock-time.danger  { color: var(--danger); }
+
+  .controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.25s ease both;
+  }
+
+  .ctrl-btn {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 1rem;
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.7rem 1.6rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ctrl-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+  .ctrl-btn.primary { background: var(--accent); color: #0a0a0f; border-color: var(--accent); }
+  .ctrl-btn.primary:hover { background: #ffd070; }
+  .ctrl-btn.danger { border-color: rgba(232,64,64,0.3); color: var(--danger); }
+  .ctrl-btn.danger:hover { background: rgba(232,64,64,0.08); border-color: var(--danger); }
+
+  /* ===================== PARTNER SCREEN ===================== */
+  #partner-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.8rem;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s;
+  }
+
+  #partner-screen.visible { opacity: 1; pointer-events: all; }
+
+  #partner-screen::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(96,192,176,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .partner-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--partner);
+  }
+
+  .partner-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 6vw, 4rem);
+    color: var(--text);
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  .partner-emoji { font-size: 3.5rem; animation: pulse 2s ease infinite; }
+
+  .partner-clock-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #partner-clock-progress {
+    fill: none;
+    stroke: var(--partner);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  .partner-clock-time {
+    position: absolute;
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    font-weight: 500;
+    color: var(--partner);
+    letter-spacing: -0.02em;
+  }
+
+  .partner-next-wrap {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .partner-next-label {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .partner-next-q {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    color: rgba(240,237,232,0.45);
+    max-width: 700px;
+    font-style: italic;
+  }
+
+  /* ===================== DONE ===================== */
+  #done-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.93);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    z-index: 80;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+
+  #done-overlay.visible { opacity: 1; pointer-events: all; }
+
+  .done-emoji { font-size: 5rem; animation: pulse 1.5s ease infinite; }
+
+  .done-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: var(--accent);
+  }
+
+  .done-sub { color: var(--muted); font-size: 1.2rem; font-weight: 300; }
+  .done-actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
+
+  /* ===================== KEYFRAMES ===================== */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.08); }
+  }
+
+  @keyframes flashRed {
+    0%, 100% { background: var(--bg); }
+    50%       { background: rgba(232,64,64,0.08); }
+  }
+
+  .flash { animation: flashRed 0.5s ease 3; }
+
+  .hint {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    text-align: right;
+    z-index: 10;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div>
+    <h1 class="setup-title">Let's connect</h1>
+    <p class="setup-subtitle">Fragen eingeben, Zeit einstellen und loslegen.</p>
+  </div>
+  <div class="setup-card">
+
+    <div class="field-group">
+      <label>⏱ Zeiten</label>
+      <div class="time-row">
+        <div class="time-block">
+          <label style="color:var(--muted)">Diskussion</label>
+          <div class="time-input-wrap">
+            <button class="time-btn" onclick="changeTime('discuss',-1)">−</button>
+            <span class="minutes-display" id="discuss-display">5</span>
+            <span style="color:var(--muted);font-size:0.85rem">Min</span>
+            <button class="time-btn" onclick="changeTime('discuss',1)">+</button>
+          </div>
+        </div>
+        <span style="color:var(--muted);font-size:1.4rem;align-self:flex-end;padding-bottom:0.5rem">→</span>
+        <div class="time-block partner">
+          <label style="color:var(--partner)">Partner finden</label>
+          <div class="time-input-wrap">
+            <button class="time-btn" onclick="changeTime('partner',-1)">−</button>
+            <span class="minutes-display" id="partner-display">1</span>
+            <span style="color:var(--muted);font-size:0.85rem">Min</span>
+            <button class="time-btn" onclick="changeTime('partner',1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>💬 Fragen</label>
+      <div class="questions-list" id="questions-list">
+        <div class="question-row" draggable="true">
+          <span class="drag-handle" title="Verschieben">⠿</span>
+          <input type="text" placeholder="Frage 1 eingeben…" />
+          <button class="icon-btn" onclick="removeQuestion(this)" title="Entfernen">✕</button>
+        </div>
+      </div>
+      <button class="add-btn" onclick="addQuestion()">+ Frage hinzufügen</button>
+    </div>
+
+  </div>
+  <button class="start-btn" onclick="startSession()">▶ Starten</button>
+</div>
+
+<!-- TIMER SCREEN -->
+<div id="timer-screen">
+  <div class="round-info">
+    <div class="round-badge" id="round-badge">Runde 1 / 1</div>
+    <div class="round-dots" id="round-dots"></div>
+  </div>
+
+  <div class="question-display">
+    <div class="question-label">Diskussionsfrage</div>
+    <div class="question-text" id="question-text">–</div>
+  </div>
+
+  <div class="clock-wrap">
+    <svg class="clock-svg" width="280" height="280" viewBox="0 0 280 280">
+      <circle class="clock-track" cx="140" cy="140" r="120"/>
+      <circle class="clock-progress" id="clock-progress" cx="140" cy="140" r="120"
+        stroke-dasharray="753.98" stroke-dashoffset="0"/>
+    </svg>
+    <div class="clock-time" id="clock-time">05:00</div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn primary" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
+    <button class="ctrl-btn" onclick="resetCurrentRound()">↺ Neu starten</button>
+    <button class="ctrl-btn" id="next-btn" onclick="skipToPartner()">Nächste Frage →</button>
+    <button class="ctrl-btn danger" onclick="backToSetup()">✕ Beenden</button>
+  </div>
+</div>
+
+<!-- PARTNER SCREEN -->
+<div id="partner-screen">
+  <div class="partner-label">Zwischenpause</div>
+  <div class="partner-emoji">🤝</div>
+  <div class="partner-title">Neuen Partner finden!</div>
+
+  <div class="partner-clock-wrap">
+    <svg style="transform:rotate(-90deg)" width="220" height="220" viewBox="0 0 220 220">
+      <circle fill="none" stroke="rgba(96,192,176,0.1)" stroke-width="8" cx="110" cy="110" r="95"/>
+      <circle id="partner-clock-progress" cx="110" cy="110" r="95"
+        stroke-dasharray="596.9" stroke-dashoffset="0"/>
+    </svg>
+    <div class="partner-clock-time" id="partner-time">01:00</div>
+  </div>
+
+  <div class="partner-next-wrap" id="next-q-wrap">
+    <div class="partner-next-label">Nächste Frage</div>
+    <div class="partner-next-q" id="partner-next-q">–</div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn primary" onclick="skipPartnerTimer()">Weiter →</button>
+    <button class="ctrl-btn danger" onclick="backToSetup()">✕ Beenden</button>
+  </div>
+</div>
+
+<!-- DONE OVERLAY -->
+<div id="done-overlay">
+  <div class="done-emoji">🎉</div>
+  <div class="done-title">Geschafft!</div>
+  <div class="done-sub" id="done-sub">Alle Runden abgeschlossen.</div>
+  <div class="done-actions">
+    <button class="ctrl-btn primary" onclick="backToSetup()">↺ Neu starten</button>
+  </div>
+</div>
+
+<div class="hint" id="keyboard-hint">Leertaste = Pause &nbsp;|&nbsp; → = Nächste Frage</div>
+
+<script>
+  const CIRCUMFERENCE  = 2 * Math.PI * 120;  // r=120 → 753.98
+  const PARTNER_CIRC   = 2 * Math.PI * 95;   // r=95  → 596.9
+
+  let discussSeconds   = 300;
+  let partnerSeconds   = 60;
+  let remaining        = 300;
+  let questions        = [];
+  let currentRound     = 0;
+  let timerInterval    = null;
+  let partnerInterval  = null;
+  let running          = false;
+  let warned30         = false;
+
+  // ── Audio (Web Audio API) ────────────────────────────────────────────────
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function beep(freq, dur, vol = 0.35, type = 'sine') {
+    try {
+      ensureAudio();
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }
+
+  function playWarning30() {
+    beep(660, 0.22, 0.28); setTimeout(() => beep(660, 0.22, 0.28), 340);
+  }
+
+  function playTimerEnd() {
+    beep(880, 0.3, 0.4);
+    setTimeout(() => beep(660, 0.3, 0.4), 380);
+    setTimeout(() => beep(440, 0.6, 0.4), 760);
+  }
+
+  function playPartnerEnd() {
+    beep(523, 0.18, 0.3);
+    setTimeout(() => beep(659, 0.18, 0.3), 210);
+    setTimeout(() => beep(784, 0.4,  0.35), 420);
+  }
+
+  // ── localStorage ─────────────────────────────────────────────────────────
+  function saveToStorage() {
+    try {
+      const qs = Array.from(document.querySelectorAll('#questions-list input')).map(i => i.value);
+      localStorage.setItem('lc_questions', JSON.stringify(qs));
+      localStorage.setItem('lc_discuss',   document.getElementById('discuss-display').textContent);
+      localStorage.setItem('lc_partner',   document.getElementById('partner-display').textContent);
+    } catch(e) {}
+  }
+
+  function loadFromStorage() {
+    try {
+      const d  = localStorage.getItem('lc_discuss');
+      const p  = localStorage.getItem('lc_partner');
+      const qs = JSON.parse(localStorage.getItem('lc_questions') || 'null');
+      if (d) document.getElementById('discuss-display').textContent = d;
+      if (p) document.getElementById('partner-display').textContent = p;
+      if (qs && qs.length > 0) {
+        document.getElementById('questions-list').innerHTML = '';
+        qs.forEach(q => addQuestion(q));
+      }
+    } catch(e) {}
+  }
+
+  document.getElementById('questions-list').addEventListener('input', saveToStorage);
+
+  // ── Time controls ────────────────────────────────────────────────────────
+  function changeTime(type, delta) {
+    const id  = type === 'discuss' ? 'discuss-display' : 'partner-display';
+    const el  = document.getElementById(id);
+    let val   = parseInt(el.textContent) + delta;
+    if (val < 1) val = 1;
+    if (val > (type === 'discuss' ? 60 : 30)) val = (type === 'discuss' ? 60 : 30);
+    el.textContent = val;
+    saveToStorage();
+  }
+
+  // ── Questions ────────────────────────────────────────────────────────────
+  function addQuestion(text = '') {
+    const list  = document.getElementById('questions-list');
+    const count = list.children.length + 1;
+    const row   = document.createElement('div');
+    row.className = 'question-row';
+    row.draggable = true;
+    row.innerHTML = `
+      <span class="drag-handle" title="Verschieben">⠿</span>
+      <input type="text" placeholder="Frage ${count} eingeben…" value="${text.replace(/"/g,'&quot;')}" />
+      <button class="icon-btn" onclick="removeQuestion(this)" title="Entfernen">✕</button>
+    `;
+    attachDragEvents(row);
+    list.appendChild(row);
+  }
+
+  function removeQuestion(btn) {
+    const list = document.getElementById('questions-list');
+    if (list.children.length <= 1) return;
+    btn.parentElement.remove();
+    saveToStorage();
+  }
+
+  // ── Drag & Drop ──────────────────────────────────────────────────────────
+  let dragSrc = null;
+
+  function attachDragEvents(row) {
+    row.addEventListener('dragstart', e => {
+      dragSrc = row; row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      document.querySelectorAll('.question-row').forEach(r => r.classList.remove('drag-over'));
+      saveToStorage();
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      document.querySelectorAll('.question-row').forEach(r => r.classList.remove('drag-over'));
+      if (row !== dragSrc) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === row) return;
+      const list = document.getElementById('questions-list');
+      const rows = [...list.children];
+      const si = rows.indexOf(dragSrc), ti = rows.indexOf(row);
+      if (si < ti) list.insertBefore(dragSrc, row.nextSibling);
+      else         list.insertBefore(dragSrc, row);
+      row.classList.remove('drag-over');
+    });
+  }
+
+  // ── Start session ────────────────────────────────────────────────────────
+  function startSession() {
+    ensureAudio();
+    discussSeconds = parseInt(document.getElementById('discuss-display').textContent) * 60;
+    partnerSeconds = parseInt(document.getElementById('partner-display').textContent) * 60;
+
+    const inputs = document.querySelectorAll('#questions-list input');
+    questions = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+    if (questions.length === 0) questions = ['Diskutiert frei!'];
+
+    currentRound = 0;
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('timer-screen').classList.add('visible');
+    document.getElementById('keyboard-hint').style.display = 'block';
+
+    buildDots();
+    loadRound();
+    startTimer();
+  }
+
+  function buildDots() {
+    const c = document.getElementById('round-dots');
+    c.innerHTML = '';
+    questions.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'round-dot' + (i === 0 ? ' active' : '');
+      d.id = `dot-${i}`;
+      c.appendChild(d);
+    });
+  }
+
+  function updateDots() {
+    questions.forEach((_, i) => {
+      const d = document.getElementById(`dot-${i}`);
+      if (d) d.className = 'round-dot' + (i < currentRound ? ' done' : i === currentRound ? ' active' : '');
+    });
+  }
+
+  function loadRound() {
+    remaining = discussSeconds;
+    running   = false;
+    warned30  = false;
+
+    document.getElementById('round-badge').textContent   = `Runde ${currentRound + 1} / ${questions.length}`;
+    document.getElementById('question-text').textContent = questions[currentRound];
+    document.getElementById('next-btn').style.display    = currentRound < questions.length - 1 ? 'flex' : 'none';
+
+    updateDots();
+    updateClockDisplay();
+
+    const qd = document.querySelector('.question-display');
+    qd.style.animation = 'none'; qd.offsetHeight;
+    qd.style.animation = 'fadeUp 0.6s ease both';
+  }
+
+  // ── Discuss timer ────────────────────────────────────────────────────────
+  function startTimer() {
+    clearInterval(timerInterval);
+    running = true;
+    document.getElementById('play-pause-btn').innerHTML = '⏸ Pause';
+    timerInterval = setInterval(tickDiscuss, 1000);
+  }
+
+  function tickDiscuss() {
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      running = false;
+      playTimerEnd();
+      document.body.classList.add('flash');
+      setTimeout(() => document.body.classList.remove('flash'), 1600);
+      if (currentRound < questions.length - 1) {
+        setTimeout(showPartnerScreen, 700);
+      } else {
+        setTimeout(showAllDone, 700);
+      }
+      return;
+    }
+    remaining--;
+    if (remaining === 30 && !warned30) { warned30 = true; playWarning30(); }
+    updateClockDisplay();
+  }
+
+  function updateClockDisplay() {
+    const m = String(Math.floor(remaining / 60)).padStart(2,'0');
+    const s = String(remaining % 60).padStart(2,'0');
+    const tEl = document.getElementById('clock-time');
+    const pEl = document.getElementById('clock-progress');
+    tEl.textContent = `${m}:${s}`;
+    const pct = remaining / discussSeconds;
+    pEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+    if      (pct <= 0.2) { tEl.className = 'clock-time danger';  pEl.className = 'clock-progress danger'; }
+    else if (pct <= 0.4) { tEl.className = 'clock-time warning'; pEl.className = 'clock-progress warning'; }
+    else                 { tEl.className = 'clock-time';          pEl.className = 'clock-progress'; }
+  }
+
+  function togglePlayPause() {
+    if (running) {
+      clearInterval(timerInterval); running = false;
+      document.getElementById('play-pause-btn').innerHTML = '▶ Weiter';
+    } else { startTimer(); }
+  }
+
+  function resetCurrentRound() { clearInterval(timerInterval); loadRound(); startTimer(); }
+
+  function skipToPartner() {
+    clearInterval(timerInterval);
+    if (currentRound < questions.length - 1) showPartnerScreen();
+  }
+
+  // ── Partner screen ───────────────────────────────────────────────────────
+  let partnerRemaining = 0;
+
+  function showPartnerScreen() {
+    document.getElementById('partner-screen').classList.add('visible');
+    const nextQ = questions[currentRound + 1] || '';
+    document.getElementById('partner-next-q').textContent = nextQ;
+    document.getElementById('next-q-wrap').style.display  = nextQ ? 'flex' : 'none';
+    partnerRemaining = partnerSeconds;
+    updatePartnerDisplay();
+    clearInterval(partnerInterval);
+    partnerInterval = setInterval(tickPartner, 1000);
+  }
+
+  function hidePartnerScreen() {
+    document.getElementById('partner-screen').classList.remove('visible');
+    clearInterval(partnerInterval);
+  }
+
+  function tickPartner() {
+    if (partnerRemaining <= 0) {
+      clearInterval(partnerInterval);
+      playPartnerEnd();
+      document.body.classList.add('flash');
+      setTimeout(() => document.body.classList.remove('flash'), 1600);
+      hidePartnerScreen();
+      currentRound++;
+      loadRound();
+      startTimer();
+      return;
+    }
+    partnerRemaining--;
+    updatePartnerDisplay();
+  }
+
+  function updatePartnerDisplay() {
+    const m = String(Math.floor(partnerRemaining / 60)).padStart(2,'0');
+    const s = String(partnerRemaining % 60).padStart(2,'0');
+    document.getElementById('partner-time').textContent = `${m}:${s}`;
+    const pct = partnerRemaining / partnerSeconds;
+    document.getElementById('partner-clock-progress').style.strokeDashoffset = PARTNER_CIRC * (1 - pct);
+  }
+
+  function skipPartnerTimer() {
+    clearInterval(partnerInterval);
+    hidePartnerScreen();
+    currentRound++;
+    loadRound();
+    startTimer();
+  }
+
+  // ── All done ─────────────────────────────────────────────────────────────
+  function showAllDone() {
+    document.getElementById('done-overlay').classList.add('visible');
+    document.getElementById('done-sub').textContent = `Alle ${questions.length} Runden abgeschlossen! 🎊`;
+  }
+
+  // ── Back to setup ────────────────────────────────────────────────────────
+  function backToSetup() {
+    clearInterval(timerInterval); clearInterval(partnerInterval);
+    hidePartnerScreen();
+    document.getElementById('done-overlay').classList.remove('visible');
+    document.getElementById('timer-screen').classList.remove('visible');
+    document.getElementById('setup-screen').classList.remove('hidden');
+    document.getElementById('keyboard-hint').style.display = 'none';
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.question-row').forEach(attachDragEvents);
+  loadFromStorage();
+
+  document.addEventListener('keydown', e => {
+    const ps = document.getElementById('partner-screen');
+    const ts = document.getElementById('timer-screen');
+    if (ps.classList.contains('visible')) {
+      if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); skipPartnerTimer(); }
+      return;
+    }
+    if (!ts.classList.contains('visible')) return;
+    if (e.code === 'Space')      { e.preventDefault(); togglePlayPause(); }
+    if (e.code === 'ArrowRight') skipToPartner();
+    if (e.code === 'KeyR')       resetCurrentRound();
+  });
+</script>
+</body>
+</html>
