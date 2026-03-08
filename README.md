@@ -2,6 +2,8 @@
 
 Ein schlichter, beamer-tauglicher Timer für moderierte Speeddating- und Kennenlernrunden. Keine Installation, keine Abhängigkeiten – einfach die HTML-Datei im Browser öffnen.
 
+https://kerk.github.io/timer/
+
 ---
 
 ## ✨ Features
