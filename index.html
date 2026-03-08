@@ -419,6 +419,8 @@
   .partner-emoji { font-size: 3.5rem; animation: pulse 2s ease infinite; }
 
   .partner-clock-wrap {
+    width: clamp(160px, 30vmin, 320px);
+    height: clamp(160px, 30vmin, 320px);
     position: relative;
     display: flex;
     align-items: center;
@@ -436,7 +438,7 @@
   .partner-clock-time {
     position: absolute;
     font-family: 'DM Mono', monospace;
-    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    font-size: clamp(1.6rem, 7vmin, 4rem);
     font-weight: 500;
     color: var(--partner);
     letter-spacing: -0.02em;
@@ -613,7 +615,7 @@
   <div class="partner-title">Neuen Partner finden!</div>
 
   <div class="partner-clock-wrap">
-    <svg style="transform:rotate(-90deg)" width="220" height="220" viewBox="0 0 220 220">
+    <svg style="transform:rotate(-90deg);width:100%;height:100%" viewBox="0 0 220 220">
       <circle fill="none" stroke="rgba(96,192,176,0.1)" stroke-width="8" cx="110" cy="110" r="95"/>
       <circle id="partner-clock-progress" cx="110" cy="110" r="95"
         stroke-dasharray="596.9" stroke-dashoffset="0"/>
