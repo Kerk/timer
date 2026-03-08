@@ -240,6 +240,106 @@
 
   .start-btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(240,192,96,0.35); }
 
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin: 0;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .action-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.22); }
+  .action-btn.copied { border-color: var(--partner); color: var(--partner); }
+
+  .preset-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .preset-input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    padding: 0.55rem 1rem;
+    flex: 1;
+    transition: border-color 0.2s;
+  }
+
+  .preset-input:focus { outline: none; border-color: var(--accent); }
+  .preset-input::placeholder { color: var(--muted); font-family: 'DM Sans', sans-serif; }
+
+  .preset-load-btn {
+    background: rgba(240,192,96,0.1);
+    border: 1px solid rgba(240,192,96,0.25);
+    border-radius: 0.75rem;
+    color: var(--accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .preset-load-btn:hover { background: rgba(240,192,96,0.18); border-color: var(--accent); }
+
+  .preset-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: -0.25rem;
+  }
+
+  .preset-hint a { color: var(--accent); text-decoration: none; }
+  .preset-hint a:hover { text-decoration: underline; }
+
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(1rem);
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 2rem;
+    padding: 0.6rem 1.4rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
   /* ===================== TIMER SCREEN ===================== */
   #timer-screen {
     position: relative;
@@ -575,9 +675,38 @@
       <button class="add-btn" onclick="addQuestion()">+ Frage hinzufügen</button>
     </div>
 
+    <hr class="divider">
+
+    <div class="field-group">
+      <label>📂 Preset laden</label>
+      <div class="preset-row">
+        <input class="preset-input" id="preset-name" placeholder="z.B. weihnachtsfeier" onkeydown="if(event.key==='Enter') loadPreset()" />
+        <button class="preset-load-btn" onclick="loadPreset()">Laden &rarr;</button>
+      </div>
+      <div class="preset-hint">
+        JSON-Dateien unter <a href="https://kerk.github.io/timer/presets/" target="_blank">presets/</a> im Repo ablegen &mdash; <a href="#" onclick="downloadSamplePreset();return false;">Beispiel herunterladen</a>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="field-group">
+      <label>🔗 Teilen &amp; Speichern</label>
+      <div class="action-row">
+        <button class="action-btn" id="copy-url-btn" onclick="copyShareURL()">🔗 Link kopieren</button>
+        <button class="action-btn" onclick="exportJSON()">⬇ JSON exportieren</button>
+        <label class="action-btn" style="cursor:pointer">
+          ⬆ JSON importieren
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+        </label>
+      </div>
+    </div>
+
   </div>
   <button class="start-btn" onclick="startSession()">▶ Starten</button>
 </div>
+
+<div id="toast"></div>
 
 <!-- TIMER SCREEN -->
 <div id="timer-screen">
@@ -967,9 +1096,116 @@
     document.getElementById('keyboard-hint').style.display = 'none';
   }
 
-  // ── Init ─────────────────────────────────────────────────────────────────
+  
+  // ── Shared data helpers ────────────────────────────────────────────────────────
+  function getCurrentData() {
+    const qs = Array.from(document.querySelectorAll('#questions-list input')).map(i => i.value.trim()).filter(Boolean);
+    return {
+      discuss: parseInt(document.getElementById('discuss-display').textContent),
+      partner: parseInt(document.getElementById('partner-display').textContent),
+      questions: qs
+    };
+  }
+
+  function applyData(data) {
+    if (data.discuss) document.getElementById('discuss-display').textContent = data.discuss;
+    if (data.partner) document.getElementById('partner-display').textContent = data.partner;
+    if (data.questions && data.questions.length > 0) {
+      document.getElementById('questions-list').innerHTML = '';
+      data.questions.forEach(q => addQuestion(q));
+    }
+    saveToStorage();
+  }
+
+  function showToast(msg, duration = 2200) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  // ── URL sharing ───────────────────────────────────────────────────────────────────────
+  function copyShareURL() {
+    const data = getCurrentData();
+    const params = new URLSearchParams();
+    params.set('discuss', data.discuss);
+    params.set('partner', data.partner);
+    data.questions.forEach(q => params.append('q', q));
+    const url = location.origin + location.pathname + '?' + params.toString();
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('copy-url-btn');
+      btn.classList.add('copied');
+      btn.textContent = '\u2713 Link kopiert!';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '\uD83D\uDD17 Link kopieren'; }, 2500);
+    });
+  }
+
+  function loadFromURL() {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('q')) return false;
+    applyData({
+      discuss:   parseInt(params.get('discuss') || '5'),
+      partner:   parseInt(params.get('partner') || '1'),
+      questions: params.getAll('q').filter(Boolean)
+    });
+    return true;
+  }
+
+  // ── JSON export / import ──────────────────────────────────────────────────────
+  function exportJSON() {
+    const data = getCurrentData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'letsconnect-preset.json';
+    a.click();
+    showToast('\u2713 JSON exportiert');
+  }
+
+  function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        applyData(JSON.parse(e.target.result));
+        showToast('\u2713 ' + file.name + ' geladen');
+      } catch { showToast('\u26a0 Ung�ltige JSON-Datei'); }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // ── Preset from repo ─────────────────────────────────────────────────────────
+  async function loadPreset() {
+    const name = document.getElementById('preset-name').value.trim().replace(/\.json$/, '');
+    if (!name) { showToast('\u26a0 Bitte einen Preset-Namen eingeben'); return; }
+    try {
+      const res = await fetch('presets/' + name + '.json');
+      if (!res.ok) throw new Error();
+      applyData(await res.json());
+      showToast('\u2713 Preset \u201e' + name + '\u201c geladen');
+    } catch { showToast('\u26a0 Preset \u201e' + name + '\u201c nicht gefunden'); }
+  }
+
+  function downloadSamplePreset() {
+    const sample = {
+      discuss: 5, partner: 1,
+      questions: [
+        "Was hat dich zu diesem Job gebracht?",
+        "Was machst du am liebsten in deiner Freizeit?",
+        "Welches Projekt hat dich zuletzt begeistert?"
+      ]
+    };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(sample, null, 2)], {type:'application/json'}));
+    a.download = 'beispiel.json';
+    a.click();
+  }
+
+// ── Init ─────────────────────────────────────────────────────────────────
   document.querySelectorAll('.question-row').forEach(attachDragEvents);
-  loadFromStorage();
+  if (!loadFromURL()) loadFromStorage();
 
   document.addEventListener('keydown', e => {
     const ps = document.getElementById('partner-screen');
